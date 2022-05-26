@@ -1,5 +1,5 @@
 import torch
-from torch import tensor
+from torch import Tensor, tensor
 import torch.nn as nn
 import sys,os
 import math
@@ -535,11 +535,14 @@ class MCnet(nn.Module):
             #     print (x.shape)
             with torch.no_grad():
                 model_out = self.forward(torch.zeros(1, 3, s, s))
-                detects, _, _= model_out
-                #print(detects[1])
-                if(detects[1]==detects[0]):
+                det_out = self.detecthead(torch.zeros(1, 3, s, s))
+                detects= model_out
+                print(detects)
+                if(torch.equal(detects[1],detects[0])):
                     detects=detects[0]
+                    print(detects.shape)
                 Detector.stride = torch.tensor([s / x.shape[-2] for x in detects])  # forward
+                print(Detector.stride)
             # print("stride"+str(Detector.stride ))
             Detector.anchors /= Detector.stride.view(-1, 1, 1)  # Set the anchors for the corresponding scale
             check_anchor_order(Detector)
@@ -567,9 +570,31 @@ class MCnet(nn.Module):
             if i == self.detector_index:
                 det_out = x
             cache.append(x if block.index in self.save else None)
-        out.insert(0,det_out)
+        #out.insert(0,det_out)
+        print(out)
         return out
-            
+
+    def detecthead(self,x):
+        cache = []
+        out = []
+        det_out = None
+        Da_fmap = []
+        LL_fmap = []
+        for i, block in enumerate(self.model):
+            print(i)
+            if block.from_ != -1:
+                x:torch.Tensor = cache[block.from_] if isinstance(block.from_, int) else [x if j == -1 else cache[j] for j in block.from_]       #calculate concat detect
+            #print(type(x),block)
+            x = block(x)
+            #print(x)
+            if i in self.seg_out_idx:     #save driving area segment result
+                m=nn.Sigmoid()
+                out.append(m(x))
+            if i == self.detector_index:
+                det_out = x
+            cache.append(x if block.index in self.save else None)
+        #out.insert(0,det_out)
+        return det_out
     
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency
         # https://arxiv.org/abs/1708.02002 section 3.3

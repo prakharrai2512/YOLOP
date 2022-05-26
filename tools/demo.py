@@ -142,8 +142,8 @@ def detect(cfg,opt):
     img = torch.zeros((1, 3, opt.img_size, opt.img_size), device=device)  # init img
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
     model.eval()
-    m = torch.jit.trace(model, (img))
-    torch.jit.save(m, 'torchik.pt')
+    #m = torch.jit.trace(model, (img))
+    #torch.jit.save(m, 'torchik.pt')
     inf_time = AverageMeter()
     nms_time = AverageMeter()
     
@@ -154,8 +154,9 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        det_out, da_seg_out,ll_seg_out= model(img)
-        #print(type(det_out),type(da_seg_out),type(ll_seg_out))
+        da_seg_out,ll_seg_out= model(img)
+        det_out = model.detecthead(img)
+        print(type(det_out),type(da_seg_out),type(ll_seg_out))
         t2 = time_synchronized()
         # if i == 0:
         #     print(det_out)
