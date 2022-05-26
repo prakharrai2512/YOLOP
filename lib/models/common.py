@@ -1,5 +1,5 @@
 import math
-import numpy as np
+#import numpy as np
 import torch
 import torch.nn as nn
 from PIL import Image, ImageDraw
@@ -76,8 +76,10 @@ class SharpenConv(nn.Module):
 
 
 class Hardswish(nn.Module):  # export-friendly version of nn.Hardswish()
-    @staticmethod
-    def forward(x):
+    def __init__(self):
+        super(Hardswish,self).__init__()
+    #@staticmethod
+    def forward(self,x):
         # return x * F.hardsigmoid(x)  # for torchscript and CoreML
         return x * F.hardtanh(x + 3, 0., 6.) / 6.  # for torchscript, CoreML and ONNX
 
@@ -94,9 +96,17 @@ class Conv(nn.Module):
             self.act = nn.Identity()
 
     def forward(self, x):
-        return self.act(self.bn(self.conv(x)))
+        #print("Hiiii333")
+        print(x.shape)
+        #if(x[0]==x[1]):
+        #    print("hiiii")
+        print(self.act(self.bn(self.conv(x))).shape)
+        ret=self.act(self.bn(self.conv(x)))
+        #print("Hii")
+        return ret
 
     def fuseforward(self, x):
+        #print("Hiiii444")
         return self.act(self.conv(x))
 
 
@@ -163,7 +173,7 @@ class Concat(nn.Module):
         super(Concat, self).__init__()
         self.d = dimension
 
-    def forward(self, x):
+    def forward(self, x: list[torch.Tensor]):
         """ print("***********************")
         for f in x:
             print(f.shape) """
@@ -186,9 +196,15 @@ class Detect(nn.Module):
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv  
 
     def forward(self, x):
+        #print(type(x))
         z = []  # inference output
-        for i in range(self.nl):
-            x[i] = self.m[i](x[i])  # conv
+        i: int = 0
+        #print(type(self.m),"Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\n\n\n\n\n\n")
+        for mi in self.m:
+            #print(type(mi))
+            x[i] = mi(x[i])  # conv
+            #print(type(x[i]))
+        
             # print(str(i)+str(x[i].shape))
             bs, _, ny, nx = x[i].shape  # x(bs,255,w,w) to x(bs,3,w,w,85)
             x[i]=x[i].view(bs, self.na, self.no, ny*nx).permute(0, 1, 3, 2).view(bs, self.na, ny, nx, self.no).contiguous()
@@ -208,10 +224,12 @@ class Detect(nn.Module):
                 print(y.shape)  #[1, 3, w, h, 85]
                 print(y.view(bs, -1, self.no).shape) #[1, 3*w*h, 85]"""
                 z.append(y.view(bs, -1, self.no))
-        return x if self.training else (torch.cat(z, 1), x)
+            i=i+1
+        #data_filler=torch.tensor([42,0])
+        return (x,x) if self.training else (torch.cat(z, 1), x)
 
     @staticmethod
-    def _make_grid(nx=20, ny=20):
+    def _make_grid(nx:int=20, ny:int=20):
         
         yv, xv = torch.meshgrid([torch.arange(ny), torch.arange(nx)])
         return torch.stack((xv, yv), 2).view((1, 1, ny, nx, 2)).float()

@@ -513,7 +513,9 @@ class MCnet(nn.Module):
 
         # Build model
         for i, (from_, block, args) in enumerate(block_cfg[1:]):
+            #print(i,from_,block,args)
             block = eval(block) if isinstance(block, str) else block  # eval strings
+            ##print(block)
             if block is Detect:
                 self.detector_index = i
             block_ = block(*args)
@@ -534,6 +536,9 @@ class MCnet(nn.Module):
             with torch.no_grad():
                 model_out = self.forward(torch.zeros(1, 3, s, s))
                 detects, _, _= model_out
+                #print(detects[1])
+                if(detects[1]==detects[0]):
+                    detects=detects[0]
                 Detector.stride = torch.tensor([s / x.shape[-2] for x in detects])  # forward
             # print("stride"+str(Detector.stride ))
             Detector.anchors /= Detector.stride.view(-1, 1, 1)  # Set the anchors for the corresponding scale
@@ -550,9 +555,12 @@ class MCnet(nn.Module):
         Da_fmap = []
         LL_fmap = []
         for i, block in enumerate(self.model):
+            print(i)
             if block.from_ != -1:
-                x = cache[block.from_] if isinstance(block.from_, int) else [x if j == -1 else cache[j] for j in block.from_]       #calculate concat detect
+                x:torch.Tensor = cache[block.from_] if isinstance(block.from_, int) else [x if j == -1 else cache[j] for j in block.from_]       #calculate concat detect
+            #print(type(x),block)
             x = block(x)
+            #print(x)
             if i in self.seg_out_idx:     #save driving area segment result
                 m=nn.Sigmoid()
                 out.append(m(x))
