@@ -111,12 +111,18 @@ def detect(cfg,opt):
 
     # Load model
     model = get_net(cfg)
-    #model1 = torch.jit.load("torchik.pt")
     checkpoint = torch.load(opt.weights, map_location= device)
     model.load_state_dict(checkpoint['state_dict'])
-    #model1.load_state_dict(checkpoint['state_dict'])
     model = model.to(device)
-    #model1 = model1.to(device)
+    
+    model1 = torch.jit.load("torchik.pt")
+    model1.load_state_dict(checkpoint['state_dict'])
+    model1 = model1.to(device)
+    
+    model2 = torch.jit.load("combusken.pt")
+    model2.load_state_dict(checkpoint['state_dict'])
+    model2 = model2.to(device)
+    
     #model1=model
     if half:
         model.half()  # to FP16
@@ -140,15 +146,15 @@ def detect(cfg,opt):
     # Save to file
     #torch.jit.save(mi, 'combusken.pt')
     # Run inference
-    #t0 = time.time()
+    t0 = time.time()
 
     vid_path, vid_writer = None, None
     img = torch.zeros((1, 3, opt.img_size, opt.img_size), device=device)  # init img
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
     model.eval()
-    m = torch.jit.trace(model, (img))
-    print(m)
-    torch.jit.save(m, 'combusken.pt')
+    #m = torch.jit.trace(model, (img))
+    #print(m)
+    #torch.jit.save(m, 'combusken.pt')
     
     inf_time = AverageMeter()
     nms_time = AverageMeter()
@@ -160,8 +166,8 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        da_seg_out,ll_seg_out = model.detecthead(img)
-        det_out = model(img)
+        da_seg_out,ll_seg_out = model1(img)
+        det_out = model2(img)
         #print(type(det_out),type(da_seg_out),type(ll_seg_out))
         t2 = time_synchronized()
         # if i == 0:
