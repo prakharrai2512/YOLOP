@@ -195,10 +195,10 @@ class Detect(nn.Module):
         self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv  
 
-    def forward(self, x):
+    def forward(self, x:list[torch.Tensor]):
         #print(type(x))
         z = []  # inference output
-        i: int = 0
+        i = 0
         #print(type(self.m),"Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\n\n\n\n\n\n")
         for mi in self.m:
             #print(type(mi))
@@ -226,7 +226,7 @@ class Detect(nn.Module):
                 z.append(y.view(bs, -1, self.no))
             i=i+1
         #data_filler=torch.tensor([42,0])
-        return (x,x) if self.training else (torch.cat(z, 1), x)
+        return x if self.training else torch.cat(z, 1)
 
     @staticmethod
     def _make_grid(nx:int=20, ny:int=20):
