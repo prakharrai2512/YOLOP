@@ -533,7 +533,7 @@ class MCnet(nn.Module):
             #     print (x.shape)
             with torch.no_grad():
                 model_out = self.forward(torch.zeros(1, 3, s, s))
-                detects, _, _= model_out
+                detects = model_out
                 Detector.stride = torch.tensor([s / x.shape[-2] for x in detects])  # forward
             # print("stride"+str(Detector.stride ))
             Detector.anchors /= Detector.stride.view(-1, 1, 1)  # Set the anchors for the corresponding scale
@@ -542,6 +542,25 @@ class MCnet(nn.Module):
             self._initialize_biases()
         
         initialize_weights(self)
+
+    def detecthead(self, x):
+        cache = []
+        out = []
+        det_out = None
+        Da_fmap = []
+        LL_fmap = []
+        for i, block in enumerate(self.model):
+            if block.from_ != -1:
+                x = cache[block.from_] if isinstance(block.from_, int) else [x if j == -1 else cache[j] for j in block.from_]       #calculate concat detect
+            x = block(x)
+            if i in self.seg_out_idx:     #save driving area segment result
+                m=nn.Sigmoid()
+                out.append(m(x))
+            if i == self.detector_index:
+                det_out = x
+            cache.append(x if block.index in self.save else None)
+        #out.insert(0,det_out)
+        return out
 
     def forward(self, x):
         cache = []
@@ -560,7 +579,7 @@ class MCnet(nn.Module):
                 det_out = x
             cache.append(x if block.index in self.save else None)
         out.insert(0,det_out)
-        return out
+        return det_out
             
     
     def _initialize_biases(self, cf=None):  # initialize biases into Detect(), cf is class frequency

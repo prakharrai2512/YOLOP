@@ -50,10 +50,13 @@ def detect(cfg,opt):
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
-    model = get_net(cfg)
+    model1 = get_net(cfg)
+    model = torch.jit.load(cfg)
     checkpoint = torch.load(opt.weights, map_location= device)
     model.load_state_dict(checkpoint['state_dict'])
+    model1.load_state_dict(checkpoint['state_dict'])
     model = model.to(device)
+    model1 = model.to(device)
     if half:
         model.half()  # to FP16
 
@@ -80,6 +83,10 @@ def detect(cfg,opt):
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
     model.eval()
 
+    #m = torch.jit.trace(model, (img))
+    #print(m)
+    #torch.jit.save(m, 'combustken.pt')
+
     inf_time = AverageMeter()
     nms_time = AverageMeter()
     
@@ -90,7 +97,8 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        det_out, da_seg_out,ll_seg_out= model(img)
+        da_seg_out,ll_seg_out= model(img)
+        det_out = model1.detecthead(img)
         t2 = time_synchronized()
         # if i == 0:
         #     print(det_out)
