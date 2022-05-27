@@ -242,10 +242,13 @@ class Detect(nn.Module):
                 y = torch.cat((xy, wh, y[..., 4:]), -1) # (bs,na,ny,nx,2+2+1+nc=xy+wh+conf+cls_prob)
 
                 z.append(y.view(bs, -1, self.no))  # y (bs,na*ny*nx,no=2+2+1+nc=xy+wh+conf+cls_prob)
-
+        if self.training:
+            print("Balle\n\n\n")
+        else:
+            print("Nalle\n\n\n")
         return x if self.training else (torch.cat(z, 1), x)
         # torch.cat(z, 1) (bs,na*ny*nx*nl,no=2+2+1+nc=xy+wh+conf+cls_prob)
-
+    
     @staticmethod
     def _make_grid(nx=20, ny=20):
 

@@ -534,36 +534,39 @@ class MCnet(nn.Module):
             s = 128  # 2x min stride
             # for x in self.forward(torch.zeros(1, 3, s, s)):
             #     print (x.shape)
-            with torch.no_grad():
-                model_out = self.forward(torch.zeros(1, 3, s, s))
-                det_out = self.detecthead(torch.zeros(1, 3, s, s))
-                detects = model_out
-                print(type(detects))
-                #if(detects[1]==detects[0]):
-                #    detects=detects[0]
-                Detector.stride = torch.tensor([s / x.shape[-2] for x in detects])  # forward
-                print(Detector.stride)
-            # print("stride"+str(Detector.stride ))
+            # with torch.no_grad():
+            #     model_out = self.forward(torch.zeros(1, 3, s, s))
+            #     if self.training:
+            #         det_out = self.detecthead(torch.zeros(1, 3, s, s))
+            #     detects = det_out
+            #     print(type(detects))
+            #     #if(detects[1]==detects[0]):
+            #     #    detects=detects[0]
+            #     Detector.stride = torch.tensor([s / x.shape[-2] for x in detects])  # forward
+            #     print(Detector.stride)
+            # # print("stride"+str(Detector.stride ))
+            Detector.stride=torch.tensor([8.0,16.0,32.0])
             Detector.anchors /= Detector.stride.view(-1, 1, 1)  # Set the anchors for the corresponding scale
             check_anchor_order(Detector)
             self.stride = Detector.stride
+            
             self._initialize_biases()
         
         initialize_weights(self)
 
-    def detecthead(self, x):
+    def forward(self, x):
         cache = []
         out = []
         det_out = None
         Da_fmap = []
         LL_fmap = []
         for i, block in enumerate(self.model):
-            #print(i)
+            print(i)
             if block.from_ != -1:
                 x = cache[block.from_] if isinstance(block.from_, int) else [x if j == -1 else cache[j] for j in block.from_]       #calculate concat detect
             #print(type(x),block)
-            x = block(x)
             #print(x)
+            x=block(x)
             if i in self.seg_out_idx:     #save driving area segment result
                 m=nn.Sigmoid()
                 out.append(m(x))
@@ -571,11 +574,12 @@ class MCnet(nn.Module):
                 det_out = x
             cache.append(x if block.index in self.save else None)
         #out.insert(0,det_out)
-        #print(out)
-        print("Hiiiii\n\n\n",out[0].shape)
+        print(type(out))
+        #print("Hiiiii\n\n\n",out[0].shape)
         return out
-    #@torch.jit.export
-    def forward(self,x):
+
+    #@torch.jit.script
+    def detecthead(self,x):
         cache = []
         out = []
         Da_fmap = []

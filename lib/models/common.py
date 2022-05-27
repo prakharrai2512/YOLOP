@@ -1,4 +1,5 @@
 import math
+from typing import Tuple
 #import numpy as np
 import torch
 import torch.nn as nn
@@ -182,9 +183,10 @@ class Concat(nn.Module):
 
 class Detect(nn.Module):
     stride = None  # strides computed during build
-
+    
     def __init__(self, nc=13, anchors=(), ch=()):  # detection layer
         super(Detect, self).__init__()
+        self.export=True
         self.nc = nc  # number of classes
         self.no = nc + 5  # number of outputs per anchor 85
         self.nl = len(anchors)  # number of detection layers 3
@@ -194,40 +196,39 @@ class Detect(nn.Module):
         self.register_buffer('anchors', a)  # shape(nl,na,2)
         self.register_buffer('anchor_grid', a.clone().view(self.nl, 1, -1, 1, 1, 2))  # shape(nl,1,na,1,1,2)
         self.m = nn.ModuleList(nn.Conv2d(x, self.no * self.na, 1) for x in ch)  # output conv  
-
-    def forward(self, x:list[torch.Tensor]):
-        #print(type(x))
+    
+    def forward(self, x):
         z = []  # inference output
-        i = 0
-        #print(type(self.m),"Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii\n\n\n\n\n\n")
+        i=0
         for mi in self.m:
-            #print(type(mi))
-            x[i] = mi(x[i])  # conv
-            #print(type(x[i]))
-        
-            # print(str(i)+str(x[i].shape))
-            bs, _, ny, nx = x[i].shape  # x(bs,255,w,w) to x(bs,3,w,w,85)
-            x[i]=x[i].view(bs, self.na, self.no, ny*nx).permute(0, 1, 3, 2).view(bs, self.na, ny, nx, self.no).contiguous()
-            # x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
-            # print(str(i)+str(x[i].shape))
+            x[i] = mi(x[i])  # conv (bs,na*no,ny,nx)
+            bs, _, ny, nx = x[i].shape
 
-            if not self.training:  # inference
-                if self.grid[i].shape[2:4] != x[i].shape[2:4]:
-                    self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
-                y = x[i].sigmoid()
-                #print("**")
-                #print(y.shape) #[1, 3, w, h, 85]
-                #print(self.grid[i].shape) #[1, 3, w, h, 2]
-                y[..., 0:2] = (y[..., 0:2] * 2. - 0.5 + self.grid[i].to(x[i].device)) * self.stride[i]  # xy
-                y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
-                """print("**")
-                print(y.shape)  #[1, 3, w, h, 85]
-                print(y.view(bs, -1, self.no).shape) #[1, 3*w*h, 85]"""
-                z.append(y.view(bs, -1, self.no))
+            # x(bs,255,20,20) to x(bs,3,20,20,nc+5) (bs,na,ny,nx,no=nc+5=4+1+nc)
+
+            x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+
+            #if not self.training:  # inference
+                # if self.grid[i].shape[2:4] != x[i].shape[2:4] or self.onnx_dynamic:
+                #     self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+
+            self.grid[i] = self._make_grid(nx, ny).to(x[i].device)
+
+            y = x[i].sigmoid()  # (bs,na,ny,nx,no=nc+5=4+1+nc)
+
+            xy = (y[..., 0:2] * 2. - 0.5 + self.grid[i]) * self.stride[i]  # xy (bs,na,ny,nx,2)
+            wh = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i].view(1, self.na, 1, 1, 2)  # wh (bs,na,ny,nx,2)
+            y = torch.cat((xy, wh, y[..., 4:]), -1) # (bs,na,ny,nx,2+2+1+nc=xy+wh+conf+cls_prob)
+
+            z.append(y.view(bs, -1, self.no))  # y (bs,na*ny*nx,no=2+2+1+nc=xy+wh+conf+cls_prob)
             i=i+1
-        #data_filler=torch.tensor([42,0])
-        return x if self.training else torch.cat(z, 1)
-
+        # if self.training:
+        #     print("Balle\n\n\n")
+        # else:
+        #     print("Nalle\n\n\n")
+        return (torch.cat(z, 1), x)
+        # torch.cat(z, 1) (bs,na*ny*nx*nl,no=2+2+1+nc=xy+wh+conf+cls_prob)
+    
     @staticmethod
     def _make_grid(nx:int=20, ny:int=20):
         
