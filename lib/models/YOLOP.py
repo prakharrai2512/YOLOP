@@ -554,7 +554,7 @@ class MCnet(nn.Module):
         
         initialize_weights(self)
 
-    def forward(self, x):
+    def detecthead(self, x):
         cache = []
         out = []
         det_out = None
@@ -579,7 +579,7 @@ class MCnet(nn.Module):
         return out
 
     #@torch.jit.script
-    def detecthead(self,x):
+    def forward(self,x):
         cache = []
         out = []
         Da_fmap = []
