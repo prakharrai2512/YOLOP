@@ -554,14 +554,14 @@ class MCnet(nn.Module):
         
         initialize_weights(self)
 
-    def detecthead(self, x):
+    def forward(self, x):
         cache = []
         out = []
         det_out = None
         Da_fmap = []
         LL_fmap = []
         for i, block in enumerate(self.model):
-            print(i)
+            #print(i)
             if block.from_ != -1:
                 x = cache[block.from_] if isinstance(block.from_, int) else [x if j == -1 else cache[j] for j in block.from_]       #calculate concat detect
             #print(type(x),block)
@@ -574,12 +574,12 @@ class MCnet(nn.Module):
                 det_out = x
             cache.append(x if block.index in self.save else None)
         #out.insert(0,det_out)
-        print(type(out))
+        #print(type(out))
         #print("Hiiiii\n\n\n",out[0].shape)
         return out
 
     #@torch.jit.script
-    def forward(self,x):
+    def detecthead(self,x):
         cache = []
         out = []
         Da_fmap = []

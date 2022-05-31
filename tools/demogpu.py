@@ -172,21 +172,18 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        da_seg_out,ll_seg_out = model.detecthead(img)
-        #shaper = model(img)
-        #print(type(shaper),da_seg_out.shape,ll_seg_out.shape)
-        det_out = model(img)
+        da_seg_out,ll_seg_out = model(img)
+        det_out = model.detecthead(img)
         print(det_out[0].shape)
         if i==0:
-            # torch.save((img), "input_tensor.pt")
-            # torch.save((det_out), "det_out.pt")
-            # torch.save((ll_seg_out), "ll_seg_out_tensor.pt")
-            # torch.save((da_seg_out), "da_seg_out_tensor.pt")
+            m = torch.jit.trace(model, (img))
+            #print(m)
+            torch.jit.save(m, 'combustken_gpu.pt')
             data_dict={'img':img,"det_out":det_out,"ll_seg_out":ll_seg_out,"da_seg_out":da_seg_out}
             data=TensorContainer(data_dict)
             data = torch.jit.script(data)
             data.save('data_gpu.pth')
-        #print(type(det_out),type(da_seg_out),type(ll_seg_out))
+        print(type(det_out),type(da_seg_out),type(ll_seg_out))
         t2 = time_synchronized()
         # if i == 0:
         #     print(det_out)

@@ -98,10 +98,10 @@ class Conv(nn.Module):
 
     def forward(self, x):
         #print("Hiiii333")
-        print(x.shape)
+        #print(x.shape)
         #if(x[0]==x[1]):
         #    print("hiiii")
-        print(self.act(self.bn(self.conv(x))).shape)
+        #print(self.act(self.bn(self.conv(x))).shape)
         ret=self.act(self.bn(self.conv(x)))
         #print("Hii")
         return ret
