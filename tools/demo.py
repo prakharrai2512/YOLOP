@@ -107,23 +107,23 @@ def detect(cfg,opt):
     logger, _, _ = create_logger(
         cfg, cfg.LOG_DIR, 'demo')
 
-    #device = select_device(logger,opt.device)
+    device = select_device(logger,opt.device)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     if os.path.exists(opt.save_dir):  # output dir
         shutil.rmtree(opt.save_dir)  # delete dir
     os.makedirs(opt.save_dir)  # make new dir
     half = device.type != 'cpu'  # half precision only supported on CUDA
-
-    # Load model
+    #half=True
+    #Load model
     model = get_net(cfg)
     checkpoint = torch.load(opt.weights, map_location= device)
     model.load_state_dict(checkpoint['state_dict'])
     model = model.to(device)
     
-    # model1 = torch.jit.load("torchik.pt")
-    # model1.load_state_dict(checkpoint['state_dict'])
-    # model1 = model1.to(device)
+    model1 = torch.jit.load("blaziken_gpu.pt")
+    model1.load_state_dict(checkpoint['state_dict'])
+    model1 = model1.to(device)
     
     # model2 = torch.jit.load("combusken.pt")
     # model2.load_state_dict(checkpoint['state_dict'])
@@ -172,25 +172,30 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        da_seg_out,ll_seg_out = model.detecthead(img)
+        da_seg_out,ll_seg_out,det_out,_ = model1(img)
+    
         #shaper = model(img)
         #print(type(shaper),da_seg_out.shape,ll_seg_out.shape)
-        det_out = model(img)
-        print(det_out[0].shape)
-        if i==0:
-            # torch.save((img), "input_tensor.pt")
-            # torch.save((det_out), "det_out.pt")
-            # torch.save((ll_seg_out), "ll_seg_out_tensor.pt")
-            # torch.save((da_seg_out), "da_seg_out_tensor.pt")
-            data_dict={'img':img,"det_out":det_out,"ll_seg_out":ll_seg_out,"da_seg_out":da_seg_out}
-            data=TensorContainer(data_dict)
-            data = torch.jit.script(data)
-            data.save('data_gpu.pth')
-        #print(type(det_out),type(da_seg_out),type(ll_seg_out))
+        #det_out = model(img)
+        #print(det_out[0].shape)
+        # if i==0:
+        #     # torch.save((img), "input_tensor.pt")
+        #     # torch.save((det_out), "det_out.pt")
+        #     # torch.save((ll_seg_out), "ll_seg_out_tensor.pt")
+        #     # torch.save((da_seg_out), "da_seg_out_tensor.pt")
+        #     data_dict={'img':img,"det_out":det_out,"ll_seg_out":ll_seg_out,"da_seg_out":da_seg_out}
+        #     data=TensorContainer(data_dict)
+        #     data = torch.jit.script(data)
+        #     data.save('data_blaze_gpu.pth')
+        #     #model.to('cpu')
+        #     m = torch.jit.trace(model, (img))
+        #     print(m)
+        #     torch.jit.save(m, 'blaziken_gpu.pt')
+        #     #model.to('cuda')
         t2 = time_synchronized()
         # if i == 0:
         #     print(det_out)
-        inf_out, _ = det_out
+        inf_out = det_out
         inf_time.update(t2-t1,img.size(0))
 
         # Apply NMS

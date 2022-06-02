@@ -576,7 +576,8 @@ class MCnet(nn.Module):
         #out.insert(0,det_out)
         #print(type(out))
         #print("Hiiiii\n\n\n",out[0].shape)
-        return out
+        ret=(out[0],out[1],det_out[0],det_out[1])
+        return ret
 
     #@torch.jit.script
     def detecthead(self,x):
