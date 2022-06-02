@@ -145,6 +145,7 @@ def detect(cfg,opt):
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
+    print(model.names)
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
 
     #mi = torch.jit.script(MCnet(YOLOPl))
