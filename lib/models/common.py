@@ -188,6 +188,7 @@ class Detect(nn.Module):
         super(Detect, self).__init__()
         self.export=True
         self.nc = nc  # number of classes
+        print(nc)
         self.no = nc + 5  # number of outputs per anchor 85
         self.nl = len(anchors)  # number of detection layers 3
         self.na = len(anchors[0]) // 2  # number of anchors 3

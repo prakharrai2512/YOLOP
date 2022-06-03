@@ -119,11 +119,14 @@ def detect(cfg,opt):
     model = get_net(cfg)
     checkpoint = torch.load(opt.weights, map_location= device)
     model.load_state_dict(checkpoint['state_dict'])
+    #model = torch.load('weights/checkpoint.pth')
     model = model.to(device)
-    
-    model1 = torch.jit.load("blaziken_gpu.pt")
-    model1.load_state_dict(checkpoint['state_dict'])
-    model1 = model1.to(device)
+    #for param_tensor in model["state_dict"]:
+    #    print(param_tensor, "\t",)
+
+    # model1 = torch.jit.load("ultra_blaziken_gpu.pt")
+    # model1.load_state_dict(checkpoint['state_dict'])
+    # model1 = model1.to(device)
     
     # model2 = torch.jit.load("combusken.pt")
     # model2.load_state_dict(checkpoint['state_dict'])
@@ -144,8 +147,8 @@ def detect(cfg,opt):
 
 
     # Get names and colors
-    names = model.module.names if hasattr(model, 'module') else model.names
-    print(model.names)
+    names = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18',] 
+    print(names)
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(names))]
 
     #mi = torch.jit.script(MCnet(YOLOPl))
@@ -173,7 +176,7 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        da_seg_out,ll_seg_out,det_out,_ = model1(img)
+        da_seg_out,ll_seg_out,det_out,_ = model(img)
     
         #shaper = model(img)
         #print(type(shaper),da_seg_out.shape,ll_seg_out.shape)
@@ -187,11 +190,11 @@ def detect(cfg,opt):
         #     data_dict={'img':img,"det_out":det_out,"ll_seg_out":ll_seg_out,"da_seg_out":da_seg_out}
         #     data=TensorContainer(data_dict)
         #     data = torch.jit.script(data)
-        #     data.save('data_blaze_gpu.pth')
+        #     data.save('data_ultrablaze_gpu.pth')
         #     #model.to('cpu')
         #     m = torch.jit.trace(model, (img))
         #     print(m)
-        #     torch.jit.save(m, 'blaziken_gpu.pt')
+        #     torch.jit.save(m, 'ultrablaziken_gpu.pt')
         #     #model.to('cuda')
         t2 = time_synchronized()
         # if i == 0:
@@ -267,7 +270,7 @@ def detect(cfg,opt):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='weights/End-to-end.pth', help='model.pth path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default='weights/checkpoint.pth', help='model.pth path(s)')
     parser.add_argument('--source', type=str, default='inference/videos', help='source')  # file/folder   ex:inference/images
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')

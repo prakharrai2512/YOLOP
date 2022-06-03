@@ -477,7 +477,7 @@ YOLOP = [
 [ -1, Conv, [256, 256, 3, 2]],      #21
 [ [-1, 10], Concat, [1]],   #22
 [ -1, BottleneckCSP, [512, 512, 1, False]],     #23
-[ [17, 20, 23], Detect,  [1, [[3,9,5,11,4,20], [7,18,6,39,12,31], [19,50,38,81,68,157]], [128, 256, 512]]], #Detection head 24
+[ [17, 20, 23], Detect,  [13, [[3,9,5,11,4,20], [7,18,6,39,12,31], [19,50,38,81,68,157]], [128, 256, 512]]], #Detection head 24
 
 [ 16, Conv, [256, 128, 3, 1]],   #25
 [ -1, Upsample, [None, 2, 'nearest']],  #26
@@ -519,6 +519,7 @@ class MCnet(nn.Module):
             ##print(block)
             if block is Detect:
                 self.detector_index = i
+                #print(*args)
             block_ = block(*args)
             block_.index, block_.from_ = i, from_
             layers.append(block_)
