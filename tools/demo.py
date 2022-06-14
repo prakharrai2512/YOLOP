@@ -118,24 +118,25 @@ def detect(cfg,opt):
     #Load model
     model = get_net(cfg)
     checkpoint = torch.load(opt.weights, map_location= device)
+    model = model.to(device)
     model.load_state_dict(checkpoint['state_dict'])
     #model = torch.load('weights/checkpoint.pth')
-    model = model.to(device)
     #for param_tensor in model["state_dict"]:
     #    print(param_tensor, "\t",)
 
-    # model1 = torch.jit.load("ultra_blaziken_gpu.pt")
-    # model1.load_state_dict(checkpoint['state_dict'])
-    # model1 = model1.to(device)
+    model1 = torch.jit.load("ultrablaziken_gpu.pt")
+    model1 = model1.to(device)
+    model1.load_state_dict(checkpoint['state_dict'])
     
-    # model2 = torch.jit.load("combusken.pt")
+    
+    #model2 = torch.jit.load("combusken.pt")
     # model2.load_state_dict(checkpoint['state_dict'])
     # model2 = model2.to(device)
     
-    #model1=model
     if half:
         model.half()  # to FP16
-
+    if half:
+        model1.half() 
     # Set Dataloader
     if opt.source.isnumeric():
         cudnn.benchmark = True  # set True to speed up constant image size inference
@@ -161,7 +162,9 @@ def detect(cfg,opt):
     vid_path, vid_writer = None, None
     img = torch.zeros((1, 3, opt.img_size, opt.img_size), device=device)  # init img
     _ = model(img.half() if half else img) if device.type != 'cpu' else None  # run once
+    #_ = model(img) if device.type != 'cpu' else None  # run once
     model.eval()
+    model1.eval()
     #m = torch.jit.trace(model, (img))
     #print(m)
     #torch.jit.save(m, 'combusken.pt')
@@ -172,6 +175,8 @@ def detect(cfg,opt):
     for i, (path, img, img_det, vid_cap,shapes) in tqdm(enumerate(dataset),total = len(dataset)):
         img = transform(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
+        #img = img.float()  # uint8 to fp16/32
+        print(img.shape)
         if img.ndimension() == 3:
             img = img.unsqueeze(0)
         # Inference
@@ -182,7 +187,7 @@ def detect(cfg,opt):
         #print(type(shaper),da_seg_out.shape,ll_seg_out.shape)
         #det_out = model(img)
         #print(det_out[0].shape)
-        # if i==0:
+        # if i==len(dataset)-2:
         #     # torch.save((img), "input_tensor.pt")
         #     # torch.save((det_out), "det_out.pt")
         #     # torch.save((ll_seg_out), "ll_seg_out_tensor.pt")
@@ -193,7 +198,7 @@ def detect(cfg,opt):
         #     data.save('data_ultrablaze_gpu.pth')
         #     #model.to('cpu')
         #     m = torch.jit.trace(model, (img))
-        #     print(m)
+        #     #print(m)
         #     torch.jit.save(m, 'ultrablaziken_gpu.pt')
         #     #model.to('cuda')
         t2 = time_synchronized()
@@ -218,11 +223,18 @@ def detect(cfg,opt):
         pad_w = int(pad_w)
         pad_h = int(pad_h)
         ratio = shapes[1][0][1]
-
+        print(da_seg_out[0][1])
         da_predict = da_seg_out[:, :, pad_h:(height-pad_h),pad_w:(width-pad_w)]
+        print("da_predict",da_predict.shape)
         da_seg_mask = torch.nn.functional.interpolate(da_predict, scale_factor=int(1/ratio), mode='bilinear')
+        print("da_seg_mask.",da_seg_mask.shape)
+        #da_seg_mask[0][1] = da_seg_mask[0][1] 
         _, da_seg_mask = torch.max(da_seg_mask, 1)
+        print("da_seg_mask.",da_seg_mask.shape)
+        #da_seg_mask = da_seg_mask+0.9
         da_seg_mask = da_seg_mask.int().squeeze().cpu().numpy()
+        
+        print("da_seg_mask.",da_seg_mask.shape)
         # da_seg_mask = morphological_process(da_seg_mask, kernel_size=7)
 
         
