@@ -126,7 +126,7 @@ def detect(cfg,opt):
 
     model1 = torch.jit.load("ultrablaziken_gpu.pt")
     model1 = model1.to(device)
-    model1.load_state_dict(checkpoint['state_dict'])
+    #model1.load_state_dict(checkpoint['state_dict'])
     
     
     #model2 = torch.jit.load("combusken.pt")
@@ -181,7 +181,7 @@ def detect(cfg,opt):
             img = img.unsqueeze(0)
         # Inference
         t1 = time_synchronized()
-        da_seg_out,ll_seg_out,det_out,_ = model(img)
+        da_seg_out,ll_seg_out,det_out,_ = model1(img)
     
         #shaper = model(img)
         #print(type(shaper),da_seg_out.shape,ll_seg_out.shape)
