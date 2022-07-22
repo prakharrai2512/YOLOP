@@ -174,7 +174,7 @@ class Concat(nn.Module):
         super(Concat, self).__init__()
         self.d = dimension
 
-    def forward(self, x: list[torch.Tensor]):
+    def forward(self, x):
         """ print("***********************")
         for f in x:
             print(f.shape) """
